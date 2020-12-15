@@ -6,7 +6,7 @@ import HomePage from "./pages/homepage/homepage.component";
 import ShopPage from "./pages/shop/shop.component";
 import Header from "./components/header/header.component.jsx";
 import SignInAndSignUpPage from "./pages/sign-in-sign-up/sign-in-sign-up.component.jsx";
-import { auth } from "./firebase/firebase.utils";
+import { auth, createUserProfileDocument } from "./firebase/firebase.utils";
 
 class App extends Component {
   constructor() {
@@ -18,15 +18,38 @@ class App extends Component {
   }
 
   authSubscriptionClose = null;
+  snapshotSubscriptionClose = null;
 
   componentDidMount() {
-    this.authSubscriptionClose = auth.onAuthStateChanged((user) => {
-      this.setState({ currentUser: user });
+    this.authSubscriptionClose = auth.onAuthStateChanged(async (userAuth) => {
+      if (userAuth) {
+        const userRef = await createUserProfileDocument(userAuth);
+
+        this.snapshotSubscriptionClose = userRef.onSnapshot((snapShot) => {
+          this.setState(
+            {
+              currentUser: {
+                id: snapShot.id,
+                ...snapShot.data(),
+              },
+            },
+            console.log(this.state)
+          );
+        });
+      } else {
+        this.setState(
+          {
+            currentUser: userAuth,
+          },
+          console.log(this.state)
+        );
+      }
     });
   }
 
   componentWillUnmount() {
     this.authSubscriptionClose();
+    this.snapshotSubscriptionClose();
   }
 
   render() {
